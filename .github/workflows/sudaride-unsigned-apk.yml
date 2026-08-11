@@ -25,12 +25,12 @@ jobs:
             -v "$PWD:/workspace" \
             -w /workspace/sudaride-android/business \
             ghcr.io/googlechromelabs/bubblewrap:latest \
-            update --skipVersionUpgrade --manifest=.
+            update --skipVersionUpgrade --manifest=twa-manifest.json
           docker run --rm \
             -v "$PWD:/workspace" \
             -w /workspace/sudaride-android/business \
             ghcr.io/googlechromelabs/bubblewrap:latest \
-            build --skipPwaValidation --skipSigning --manifest=.
+            build --skipPwaValidation --skipSigning --manifest=twa-manifest.json
           find sudaride-android/business -type f -name '*.apk' -print
 
       - name: Build Captain unsigned APK
@@ -41,12 +41,12 @@ jobs:
             -v "$PWD:/workspace" \
             -w /workspace/sudaride-android/captain \
             ghcr.io/googlechromelabs/bubblewrap:latest \
-            update --skipVersionUpgrade --manifest=.
+            update --skipVersionUpgrade --manifest=twa-manifest.json
           docker run --rm \
             -v "$PWD:/workspace" \
             -w /workspace/sudaride-android/captain \
             ghcr.io/googlechromelabs/bubblewrap:latest \
-            build --skipPwaValidation --skipSigning --manifest=.
+            build --skipPwaValidation --skipSigning --manifest=twa-manifest.json
           find sudaride-android/captain -type f -name '*.apk' -print
 
       - name: Align APKs and package signing tool
