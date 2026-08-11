@@ -1,0 +1,75 @@
+name: Build SudaRide unsigned APKs
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'sudaride-android/**'
+      - '.github/workflows/sudaride-unsigned-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Business unsigned APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace/sudaride-android/business \
+            ghcr.io/googlechromelabs/bubblewrap:latest \
+            update --skipVersionUpgrade --manifest=.
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace/sudaride-android/business \
+            ghcr.io/googlechromelabs/bubblewrap:latest \
+            build --skipPwaValidation --skipSigning --manifest=.
+          find sudaride-android/business -type f -name '*.apk' -print
+
+      - name: Build Captain unsigned APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace/sudaride-android/captain \
+            ghcr.io/googlechromelabs/bubblewrap:latest \
+            update --skipVersionUpgrade --manifest=.
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace/sudaride-android/captain \
+            ghcr.io/googlechromelabs/bubblewrap:latest \
+            build --skipPwaValidation --skipSigning --manifest=.
+          find sudaride-android/captain -type f -name '*.apk' -print
+
+      - name: Align APKs and package signing tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          BUSINESS_APK=$(find sudaride-android/business -type f -name '*.apk' | head -1)
+          CAPTAIN_APK=$(find sudaride-android/captain -type f -name '*.apk' | head -1)
+          test -n "$BUSINESS_APK"
+          test -n "$CAPTAIN_APK"
+          BUILD_TOOLS=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          ZIPALIGN="$ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign"
+          "$ZIPALIGN" -f -v 4 "$BUSINESS_APK" out/sudaride-business-unsigned-aligned.apk
+          "$ZIPALIGN" -f -v 4 "$CAPTAIN_APK" out/sudaride-captain-unsigned-aligned.apk
+          cp "$ANDROID_HOME/build-tools/$BUILD_TOOLS/lib/apksigner.jar" out/apksigner.jar
+          test -s out/sudaride-business-unsigned-aligned.apk
+          test -s out/sudaride-captain-unsigned-aligned.apk
+          test -s out/apksigner.jar
+
+      - name: Upload unsigned Android build kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: sudaride-unsigned-android-v1
+          path: out/
+          retention-days: 7
